@@ -243,9 +243,17 @@ static void hvf_set_dirty_tracking(MemoryRegionSection *section, bool on)
 {
     hvf_slot *slot;
 
+
+    if (section == NULL)
+        return;
+
     slot = hvf_find_overlap_slot(
             section->offset_within_address_space,
             int128_get64(section->size));
+
+    if (slot == NULL)
+        return;
+    // fprintf(stderr, "set_dirty_tracking\n");
 
     /* protect region against writes; begin tracking it */
     if (on) {
@@ -323,6 +331,8 @@ static int hvf_accel_init(MachineState *ms)
     int x;
     hv_return_t ret;
     HVFState *s;
+
+    printf("calling hvf_accel_init\n");
 
     ret = hv_vm_create(HV_VM_DEFAULT);
     assert_hvf_ok(ret);

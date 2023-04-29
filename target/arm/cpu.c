@@ -1370,6 +1370,7 @@ void arm_cpu_post_init(Object *obj)
 
 #ifndef CONFIG_USER_ONLY
     if (arm_feature(&cpu->env, ARM_FEATURE_EL3)) {
+        fprintf(stderr, "whoops actually true\n");
         /* Add the has_el3 state CPU property only if EL3 is allowed.  This will
          * prevent "has_el3" from existing on CPUs which cannot support EL3.
          */

@@ -130,11 +130,14 @@ static void bcm2836_realize(DeviceState *dev, Error **errp)
         /* TODO: this should be converted to a property of ARM_CPU */
         s->cpu[n].core.mp_affinity = (bc->clusterid << 8) | n;
 
+        fprintf(stderr, "before");
         /* set periphbase/CBAR value for CPU-local registers */
-        if (!object_property_set_int(OBJECT(&s->cpu[n].core), "reset-cbar",
-                                     bc->peri_base, errp)) {
-            return;
+        if (object_property_find(OBJECT(&s->cpu[n].core), "reset-cbar")) {
+            object_property_set_int(OBJECT(&s->cpu[n].core), "reset-cbar",
+                                     bc->peri_base, errp);
         }
+        fprintf(stderr, "after");
+
 
         /* start powered off if not enabled */
         if (!object_property_set_bool(OBJECT(&s->cpu[n].core),
@@ -143,6 +146,9 @@ static void bcm2836_realize(DeviceState *dev, Error **errp)
                                       errp)) {
             return;
         }
+
+        fprintf(stderr, "actually setting has_el3 to false\n");
+        object_property_set_bool(OBJECT(&s->cpu[n]), "has_el3", false, NULL);
 
         if (!qdev_realize(DEVICE(&s->cpu[n].core), NULL, errp)) {
             return;
@@ -163,6 +169,7 @@ static void bcm2836_realize(DeviceState *dev, Error **errp)
                 qdev_get_gpio_in_named(DEVICE(&s->control), "cnthpirq", n));
         qdev_connect_gpio_out(DEVICE(&s->cpu[n].core), GTIMER_SEC,
                 qdev_get_gpio_in_named(DEVICE(&s->control), "cntpsirq", n));
+        
     }
 }
 
@@ -204,7 +211,7 @@ static void bcm2837_class_init(ObjectClass *oc, void *data)
     DeviceClass *dc = DEVICE_CLASS(oc);
     BCM283XClass *bc = BCM283X_CLASS(oc);
 
-    bc->cpu_type = ARM_CPU_TYPE_NAME("cortex-a53");
+    bc->cpu_type = ARM_CPU_TYPE_NAME("host");
     bc->core_count = BCM283X_NCPUS;
     bc->peri_base = 0x3f000000;
     bc->ctrl_base = 0x40000000;

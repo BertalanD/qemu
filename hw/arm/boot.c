@@ -1016,6 +1016,7 @@ static void arm_setup_direct_kernel_boot(ARMCPU *cpu,
     /* Assume that raw images are linux kernels, and ELF images are not.  */
     kernel_size = arm_load_elf(info, &elf_entry, &image_low_addr,
                                &image_high_addr, elf_machine, as);
+    fprintf(stderr, "kernel_size: %d\n", kernel_size);
     if (kernel_size > 0 && have_dtb(info)) {
         /*
          * If there is still some room left at the base of RAM, try and put

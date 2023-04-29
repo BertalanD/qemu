@@ -126,6 +126,7 @@ ssize_t load_image_targphys(const char *filename,
 ssize_t load_image_targphys_as(const char *filename,
                                hwaddr addr, uint64_t max_sz, AddressSpace *as)
 {
+    fprintf(stderr, "loading %s\n", filename);
     ssize_t size;
 
     size = get_image_size(filename);

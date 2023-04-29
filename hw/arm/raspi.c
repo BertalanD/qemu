@@ -233,6 +233,7 @@ static void setup_boot(MachineState *machine, RaspiProcessorId processor_id,
     /* If the user specified a "firmware" image (e.g. UEFI), we bypass
      * the normal Linux boot process
      */
+    fprintf(stderr, "are we here?\n");
     if (machine->firmware) {
         hwaddr firmware_addr = processor_id <= PROCESSOR_ID_BCM2836
                              ? FIRMWARE_ADDR_2 : FIRMWARE_ADDR_3;

@@ -38,7 +38,11 @@ void assert_hvf_ok(hv_return_t ret)
     case HV_UNSUPPORTED:
         error_report("Error: HV_UNSUPPORTED");
         break;
+    case HV_ILLEGAL_GUEST_STATE:
+        error_report("Error: HV_ILLEGAL_GUEST_STATE");
+        break;
     default:
+        fprintf(stderr, "ret: %d", ret);
         error_report("Unknown Error");
     }
 

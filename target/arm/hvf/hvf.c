@@ -836,6 +836,8 @@ static bool hvf_arm_get_host_cpu_features(ARMHostCPUFeatures *ahcf)
     hv_vcpu_exit_t *exit;
     int i;
 
+    fprintf(stderr, "actually calling hvf_arm_get_host_cpu_features\n");
+
     ahcf->dtb_compatible = "arm,arm-v8";
     ahcf->features = (1ULL << ARM_FEATURE_V8) |
                      (1ULL << ARM_FEATURE_NEON) |
@@ -879,6 +881,7 @@ static bool hvf_arm_get_host_cpu_features(ARMHostCPUFeatures *ahcf)
 
 void hvf_arm_set_cpu_features_from_host(ARMCPU *cpu)
 {
+    fprintf(stderr, "calling hvf_arm_set_cpu_features_from_host\n");
     if (!arm_host_cpu_features.dtb_compatible) {
         if (!hvf_enabled() ||
             !hvf_arm_get_host_cpu_features(&arm_host_cpu_features)) {
@@ -1802,6 +1805,12 @@ int hvf_vcpu_exec(CPUState *cpu)
     flush_cpu_state(cpu);
 
     qemu_mutex_unlock_iothread();
+    fprintf(stderr, "lets go!\n");
+    uint64_t pc;
+
+        r = hv_vcpu_get_reg(cpu->hvf->fd, HV_REG_PC, &pc);
+        assert_hvf_ok(r);
+        printf("pc=0x%llx\n", pc);
     assert_hvf_ok(hv_vcpu_run(cpu->hvf->fd));
 
     /* handle VMEXIT */
@@ -1882,6 +1891,7 @@ int hvf_vcpu_exec(CPUState *cpu)
         uint32_t cm = (syndrome >> 8) & 0x1;
         uint64_t val = 0;
 
+        printf("pc=%llx, virt=%llx, phys=%llx\n", env->pc, hvf_exit->exception.virtual_address, hvf_exit->exception.physical_address);
         trace_hvf_data_abort(env->pc, hvf_exit->exception.virtual_address,
                              hvf_exit->exception.physical_address, isv,
                              iswrite, s1ptw, len, srt);
@@ -1961,9 +1971,22 @@ int hvf_vcpu_exec(CPUState *cpu)
         }
         break;
     default:
+    {
         cpu_synchronize_state(cpu);
         trace_hvf_exit(syndrome, ec, env->pc);
-        error_report("0x%llx: unhandled exception ec=0x%x", env->pc, ec);
+        uint64_t val = 0;
+        uint32_t len = 4;
+        address_space_read(&address_space_memory,
+                    env->pc,
+                    MEMTXATTRS_UNSPECIFIED, &val, len);
+        hv_return_t r;
+        uint64_t esr_el1;
+        r = hv_vcpu_get_sys_reg(cpu->hvf->fd, HV_SYS_REG_ESR_EL1, &esr_el1);
+        assert_hvf_ok(r);
+
+        error_report("0x%llx: unhandled exception ec=0x%x val=0x%llx esr_el2=0x%llx virt=0x%llx pys=0x%llx", env->pc, ec, val, syndrome, hvf_exit->exception.virtual_address, hvf_exit->exception.physical_address);
+        abort();
+    }
     }
 
     if (advance_pc) {
@@ -1971,8 +1994,10 @@ int hvf_vcpu_exec(CPUState *cpu)
 
         flush_cpu_state(cpu);
 
+
         r = hv_vcpu_get_reg(cpu->hvf->fd, HV_REG_PC, &pc);
         assert_hvf_ok(r);
+        printf("pc increment: %llx\n", pc);
         pc += 4;
         r = hv_vcpu_set_reg(cpu->hvf->fd, HV_REG_PC, pc);
         assert_hvf_ok(r);
